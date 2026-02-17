@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
   headers: async () => {
     return [
       {
@@ -25,7 +26,17 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://web.archive.org https://archive.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // ⬅️ Permite React y Next.js
+              "style-src 'self' 'unsafe-inline'", // ⬅️ Permite Tailwind y estilos
+              "img-src 'self' data: https:",
+              "font-src 'self'",
+              "connect-src 'self' https://web.archive.org https://archive.org",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
           },
           {
             key: 'X-Content-Type-Options',
