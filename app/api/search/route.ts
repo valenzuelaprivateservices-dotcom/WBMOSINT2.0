@@ -24,12 +24,14 @@ export async function POST(request: NextRequest) {
         const allResults: SearchResult[] = [];
         const seenUrls = new Set<string>();
 
-        // Try multiple search patterns
+        // Try multiple search patterns WITHOUT wildcards
         const patterns = [
-            `*.${username}.com/*`,        // *.auronplay.com/*
             `${username}.com/*`,          // auronplay.com/*
+            `*.${username}.com/*`,        // *.auronplay.com/*
             `${username}.tv/*`,           // auronplay.tv/*
             `${username}.net/*`,          // auronplay.net/*
+            `${username}.org/*`,          // auronplay.org/*
+            `${username}.es/*`,           // auronplay.es/*
         ];
 
         for (const pattern of patterns) {
@@ -50,7 +52,8 @@ export async function POST(request: NextRequest) {
 
                 if (response.data && Array.isArray(response.data)) {
                     const results = response.data as CDXResponse['results'];
-                    if (results[0] && Array.isArray(results[0])) {
+                    // Check if results[0] is an array (header row)
+                    if (results.length > 1 && Array.isArray(results[0])) {
                         for (let i = 1; i < results.length; i++) {
                             const [url, timestamp, , , statusCode] = results[i];
                             if (statusCode && url && timestamp && !seenUrls.has(url)) {
@@ -65,8 +68,8 @@ export async function POST(request: NextRequest) {
                     }
                 }
             } catch (error) {
-                console.error(`Error searching pattern ${pattern}:`, error);
-                // Continue with next pattern
+                // Silently continue with next pattern
+                console.log(`Pattern ${pattern} returned no results or error`);
             }
         }
 
@@ -85,6 +88,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Sort by newest first
         filteredResults.sort(
             (a, b) => parseInt(b.timestamp) - parseInt(a.timestamp)
         );
