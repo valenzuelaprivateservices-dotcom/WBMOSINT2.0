@@ -21,21 +21,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const patterns = [
-            `*${username}*`,
-            `*@${username}*`,
-        ];
-
-        if (keywords) {
-            const keywordArray = keywords
-                .split(',')
-                .map((k) => k.trim())
-                .filter((k) => k);
-            patterns.push(...keywordArray.map((k) => `*${k}*`));
-        }
-
         const allResults: SearchResult[] = [];
         const seenUrls = new Set<string>();
+
+        // Try multiple search patterns
+        const patterns = [
+            `*.${username}.com/*`,        // *.auronplay.com/*
+            `${username}.com/*`,          // auronplay.com/*
+            `${username}.tv/*`,           // auronplay.tv/*
+            `${username}.net/*`,          // auronplay.net/*
+        ];
 
         for (const pattern of patterns) {
             try {
@@ -43,11 +38,10 @@ export async function POST(request: NextRequest) {
                     'https://web.archive.org/cdx/search/cdx',
                     {
                         params: {
-                            q: pattern,
+                            url: pattern,
                             output: 'json',
                             filter: 'statuscode:200',
                             collapse: 'urlkey',
-                            matchType: 'contains',
                             pageSize: 100,
                         },
                         timeout: 10000,
@@ -56,7 +50,7 @@ export async function POST(request: NextRequest) {
 
                 if (response.data && Array.isArray(response.data)) {
                     const results = response.data as CDXResponse['results'];
-                    if (Array.isArray(results[0])) {
+                    if (results[0] && Array.isArray(results[0])) {
                         for (let i = 1; i < results.length; i++) {
                             const [url, timestamp, , , statusCode] = results[i];
                             if (statusCode && url && timestamp && !seenUrls.has(url)) {
@@ -72,14 +66,33 @@ export async function POST(request: NextRequest) {
                 }
             } catch (error) {
                 console.error(`Error searching pattern ${pattern}:`, error);
+                // Continue with next pattern
             }
         }
 
-        allResults.sort(
+        // Filter by keywords if provided
+        let filteredResults = allResults;
+        if (keywords) {
+            const keywordArray = keywords
+                .split(',')
+                .map((k) => k.trim().toLowerCase())
+                .filter((k) => k);
+            
+            filteredResults = allResults.filter((result) =>
+                keywordArray.some((keyword) =>
+                    result.url.toLowerCase().includes(keyword)
+                )
+            );
+        }
+
+        filteredResults.sort(
             (a, b) => parseInt(b.timestamp) - parseInt(a.timestamp)
         );
 
-        return NextResponse.json({ results: allResults, count: allResults.length, });
+        return NextResponse.json({ 
+            results: filteredResults, 
+            count: filteredResults.length,
+        });
     } catch (error) {
         console.error('Search error:', error);
         return NextResponse.json(
