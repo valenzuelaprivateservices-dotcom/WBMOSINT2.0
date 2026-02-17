@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  headers: async () => {
+  async headers() {
     return [
       {
         source: '/api/:path*',
@@ -22,17 +22,18 @@ const nextConfig = {
         ],
       },
       {
-        source: '/:path*',
+        source: '/(.*)',
         headers: [
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // ⬅️ Permite React y Next.js
-              "style-src 'self' 'unsafe-inline'", // ⬅️ Permite Tailwind y estilos
-              "img-src 'self' data: https:",
-              "font-src 'self'",
-              "connect-src 'self' https://web.archive.org https://archive.org",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https: http:",
+              "script-src-elem 'self' 'unsafe-inline' https: http:",
+              "style-src 'self' 'unsafe-inline' https:",
+              "img-src 'self' data: https: http:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://web.archive.org https://archive.org https: http:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
